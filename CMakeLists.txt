@@ -28,6 +28,9 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 add_library(${PROJECT_NAME} SHARED
     src/System.cpp
     src/OpticalFlow.cpp
+    src/MeshFlow.cpp
+    src/Optimization.cpp
+    src/Stabilizer.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}
