@@ -1,5 +1,6 @@
 CMakeLists.txt.user
 examples/stabilize
+examples/assets/video.mp4
 
 # Prerequisites
 *.d
