@@ -61,12 +61,20 @@ void Stabilizer::readVideo(VideoCapture& cap) {
     Log("1. Video is processed.");
 }
 
-void Stabilizer::stabilize() {
+void Stabilizer::stabilize(bool online) {
     // std::cout << xPaths[2] << std::endl;
-    Optimizer::offlinePathOptimization(xPaths, smoothXPaths);
-    Log("smoothX!!!");
-    Optimizer::offlinePathOptimization(yPaths, smoothYPaths);
-    Log("smoothY!!!");
+    if (online) {
+        Optimizer::onlinePathOptimization(xPaths, smoothXPaths, 30);
+        Log("smoothX!!!");
+        Optimizer::onlinePathOptimization(yPaths, smoothYPaths, 30);
+        Log("smoothY!!!");
+    } else {
+        Optimizer::offlinePathOptimization(xPaths, smoothXPaths);
+        Log("smoothX!!!");
+        Optimizer::offlinePathOptimization(yPaths, smoothYPaths);
+        Log("smoothY!!!");
+    }
+
     Log("2. Vertex profiles are stabilized.");
 }
 
@@ -95,7 +103,7 @@ void Stabilizer::generateStabilizedVideo(VideoCapture &cap)
     int frameCount = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_COUNT));
 
     // get video parameters
-    cv::VideoWriter out = cv::VideoWriter("../stable.avi", CV_FOURCC('X', 'V', 'I', 'D'), frameRate, cv::Size(frameWidth, frameHeight));
+    cv::VideoWriter out = cv::VideoWriter("../stable.avi", CV_FOURCC('X', 'V', 'I', 'D'), frameRate, cv::Size(frameWidth*2, frameHeight));
 
     int frameNum{0};
     while (frameNum < frameCount) {
@@ -118,12 +126,10 @@ void Stabilizer::generateStabilizedVideo(VideoCapture &cap)
         cv::resize(newFrame, newFrame, cv::Size(frame.cols, frame.rows), cv::INTER_CUBIC);
 
         // Write images
-        //Mat outputFrame(frameHeight, 2*frameWidth, frame.type());
-        //Mat firstOut = outputFrame(cv::Rect(0, 0, frameWidth, frameHeight));
-        //Mat secondOut = outputFrame(cv::Rect(frameWidth-1, 0, frameWidth, frameHeight));
-        //firstOut = frame.clone();
-        //secondOut = newFrame.clone();
-        out.write(newFrame);
+        Mat outputFrame(frameHeight, 2*frameWidth, frame.type());
+        cv::hconcat(frame, newFrame, outputFrame);
+
+        out.write(outputFrame);
 
         // Draw old motion vectors and draw new motion vectors
         // TODO: to do or not to do

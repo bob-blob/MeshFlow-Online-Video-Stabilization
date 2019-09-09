@@ -24,7 +24,7 @@ public:
 
     void readVideo(VideoCapture& cap);
 
-    void stabilize();
+    void stabilize(bool online);
 
     void getFrameWarp();
 
