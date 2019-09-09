@@ -19,7 +19,8 @@ public:
                                                int iterations = 100,
                                                int windowSize = 6);
 
-    static vector<Mat> onlinePathOptimization(const vector<Mat>& cameraPath,
+    static void onlinePathOptimization(const vector<Mat>& cameraPath,
+                                              vector<Mat>& optimizedPath,
                                               int bufferSize = 200,
                                               int iterations = 10,
                                               int windowSize = 32,

@@ -12,10 +12,10 @@ double Optimizer::gauss(int t, int r, int windowSize) {
 /// Optimization methods solved by iterative Jacobi-based solver
 void Optimizer::offlinePathOptimization(const vector<Mat>& cameraPath,
                                         vector<Mat>& p,
-                                               int iterations,
-                                               int windowSize) {
+                                        int iterations,
+                                        int windowSize) {
     double lambda_t = 100;
-   // vector<Mat> p = cameraPath;
+
     p.reserve(cameraPath.size());
     for (int i = 0; i < cameraPath.size(); ++i) {
         p.push_back(Mat::zeros(cameraPath.back().rows, cameraPath.back().cols, CV_64F));
@@ -54,14 +54,19 @@ void Optimizer::offlinePathOptimization(const vector<Mat>& cameraPath,
 
 }
 
-vector<Mat> Optimizer::onlinePathOptimization(const vector<Mat>& cameraPath,
-                                              int bufferSize,
-                                              int iterations,
-                                              int windowSize,
-                                              int beta) {
+void Optimizer::onlinePathOptimization(const vector<Mat>& cameraPath,
+                                       vector<Mat>& optimizedPath,
+                                       int bufferSize,
+                                       int iterations,
+                                       int windowSize,
+                                       int beta) {
 
-    double lambda_t = 100;
-    vector<Mat> p = cameraPath;
+    double lambda_t = 100; // TODO: make lambda adaptive
+
+    optimizedPath.reserve(cameraPath.size());
+    for (int i = 0; i < cameraPath.size(); ++i) {
+        optimizedPath.push_back(Mat::zeros(cameraPath.back().rows, cameraPath.back().cols, CV_64F));
+    }
 
     /// Fill in the weights
     Mat W(bufferSize, bufferSize, CV_64F);
@@ -115,12 +120,10 @@ vector<Mat> Optimizer::onlinePathOptimization(const vector<Mat>& cameraPath,
                 y.push_back(P.at<double>(P.rows-1));
             }
             for (int m = 0; m < y.size(); ++m) {
-                p[m].at<double>(i, j) = y[m];
+                optimizedPath[m].at<double>(i, j) = y[m];
             }
         }
     }
-
-    return p;
 }
 
 Mat Optimizer::getCamPath(const vector<Mat>& camPath, int i, int j) {
