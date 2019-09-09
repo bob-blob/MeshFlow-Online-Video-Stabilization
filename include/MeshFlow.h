@@ -15,22 +15,22 @@ typedef std::map<std::pair<int, int>, vector<double>> Map;
 class MeshFlow
 {
 public:
-    const int PIXELS = 16;
-    const int RADIUS = 300;
+    static const int PIXELS = 16;
+    static const int RADIUS = 300;
 
-    void transformPoint(const Mat& H, const Point2d& point, Point2d& result);
+    static void transformPoint(const Mat& H, const Point2d& point, Point2d& result);
 
-    void motionPropagate(const vector<Point2d> oldPoints,
+    static void motionPropagate(const vector<Point2d> oldPoints,
                          const vector<Point2d> newPoints,
                          const Mat& oldFrame,
                          Mat& xMotionMesh, Mat& yMotionMesh);
 
-    void generateVertexProfiles(const Mat& xMotionMesh,
+    static void generateVertexProfiles(const Mat& xMotionMesh,
                                 const Mat& yMotionMesh,
                                 vector<Mat>& xPaths, vector<Mat>& yPaths);
 
 
-    void meshWarpFrame(const Mat& frame,
+    static void meshWarpFrame(const Mat& frame,
                        const Mat& xMotionMesh,
                        const Mat& yMotionMesh,
                        Mat& warpedFrame);
