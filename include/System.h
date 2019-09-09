@@ -3,6 +3,7 @@
 #include <string>
 
 #include "OpticalFlow.h"
+#include "Stabilizer.h"
 
 namespace meshflow {
 
