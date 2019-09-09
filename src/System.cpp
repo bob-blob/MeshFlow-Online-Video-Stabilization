@@ -12,7 +12,7 @@ void System::run() {
     stab.readVideo(cap);
 
     // Stabilize the  vertex profiles
-    stab.stabilize();
+    stab.stabilize(false);
 
     // Get updated mesh warps
     stab.getFrameWarp();
