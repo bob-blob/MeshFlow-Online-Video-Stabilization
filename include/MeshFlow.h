@@ -2,6 +2,8 @@
 
 #include <opencv2/opencv.hpp>
 
+#define Log(x) std::cout<<x<<std::endl
+
 using cv::Vec2d;
 using cv::Mat;
 using cv::Point2d;
