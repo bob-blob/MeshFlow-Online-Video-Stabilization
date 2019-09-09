@@ -16,6 +16,10 @@ void Optimizer::offlinePathOptimization(const vector<Mat>& cameraPath,
                                                int windowSize) {
     double lambda_t = 100;
    // vector<Mat> p = cameraPath;
+    p.reserve(cameraPath.size());
+    for (int i = 0; i < cameraPath.size(); ++i) {
+        p.push_back(Mat::zeros(cameraPath.back().rows, cameraPath.back().cols, CV_64F));
+    }
 
     // Fill in the weight matrix
     Mat W = Mat::zeros(cameraPath.size(), cameraPath.size(), CV_64F);
