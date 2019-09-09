@@ -11,26 +11,27 @@ namespace meshflow {
 class Optimizer
 {
 public:
-    double gauss(int t, int r, int windowSize);
+    static double gauss(int t, int r, int windowSize);
 
     /// Optimization methods solved by iterative Jacobi-based solver
-    vector<Mat> offlinePathOptimization(const vector<Mat> cameraPath,
-                                   int iterations,
-                                   int windowSize);
+    static void offlinePathOptimization(const vector<Mat>& cameraPath,
+                                        vector<Mat>& p,
+                                               int iterations = 100,
+                                               int windowSize = 6);
 
-    vector<Mat> onlinePathOptimization(const vector<Mat> cameraPath,
-                                       int bufferSize,
-                                       int iterations,
-                                       int windowSize,
-                                       int beta);
+    static vector<Mat> onlinePathOptimization(const vector<Mat>& cameraPath,
+                                              int bufferSize = 200,
+                                              int iterations = 10,
+                                              int windowSize = 32,
+                                              int beta = 1);
     // Implement parallel optimization
 
-    Mat getCamPath(const vector<Mat>& camPath, int i, int j);
-    Mat getCamPath(const vector<Mat>& camPath, int i, int j, int ub);
-    Mat getCamPath(const vector<Mat>& camPath, int i, int j, int lb, int ub);
+    static Mat getCamPath(const vector<Mat>& camPath, int i, int j);
+    static Mat getCamPath(const vector<Mat>& camPath, int i, int j, int ub);
+    static Mat getCamPath(const vector<Mat>& camPath, int i, int j, int lb, int ub);
 
 
-    Mat getW(const Mat& W, int t);
+    static Mat getW(const Mat& W, int t);
 };
 
 }
