@@ -9,20 +9,16 @@ void System::run() {
 
     // Propagate motion vectors and generate vertex profiles
     Stabilizer stab;
-    std::vector<cv::Mat> xMotionMeshes, yMotionMeshes,
-                         xPaths, yPaths;
-    stab.readVideo(cap, xMotionMeshes, yMotionMeshes, xPaths, yPaths);
+    stab.readVideo(cap);
 
     // Stabilize the  vertex profiles
-    std::vector<cv::Mat> smoothXPaths = xPaths, smoothYPaths = yPaths;
-    stab.stabilize(xPaths, yPaths, smoothXPaths, smoothYPaths);
+    stab.stabilize();
 
     // Get updated mesh warps
-    std::vector<cv::Mat> newXMotionMeshes, newYMotionMeshes;
-    stab.getFrameWarp(xPaths, yPaths, smoothXPaths, smoothYPaths, xMotionMeshes, yMotionMeshes, newXMotionMeshes, newYMotionMeshes);
+    stab.getFrameWarp();
 
     // Apply updated mesh warps & save the results
-    stab.generateStabilizedVideo(cap, xMotionMeshes, yMotionMeshes, newXMotionMeshes, newYMotionMeshes);
+    stab.generateStabilizedVideo(cap);
 }
 
 }
