@@ -2,9 +2,8 @@
 
 namespace meshflow {
 
-void Stabilizer::readVideo(VideoCapture& cap,
-                           std::vector<Mat>& xMotionMeshes, std::vector<Mat>& yMotionMeshes,
-                           std::vector<Mat>& xPaths, std::vector<Mat>& yPaths) {
+void Stabilizer::readVideo(VideoCapture& cap) {
+
     cap.set(cv::CAP_PROP_POS_FRAMES, 0);
 
     // Take first frame
@@ -62,19 +61,16 @@ void Stabilizer::readVideo(VideoCapture& cap,
     Log("1. Video is processed.");
 }
 
-void Stabilizer::stabilize(const std::vector<Mat>& xPaths, const std::vector<Mat>& yPaths,
-               std::vector<Mat>& smoothXPaths, std::vector<Mat>& smoothYPaths) {
+void Stabilizer::stabilize() {
     // std::cout << xPaths[2] << std::endl;
     Optimizer::offlinePathOptimization(xPaths, smoothXPaths);
-    //Log(smoothXPaths[2]);
     Log("smoothX!!!");
     Optimizer::offlinePathOptimization(yPaths, smoothYPaths);
     Log("smoothY!!!");
     Log("2. Vertex profiles are stabilized.");
 }
 
-void Stabilizer::getFrameWarp(const std::vector<Mat> &xPaths, const std::vector<Mat> &yPaths, const std::vector<Mat> &smoothXPaths, const std::vector<Mat> &smoothYPaths,
-                              std::vector<Mat> &xMotionMeshes, std::vector<Mat> &yMotionMeshes, std::vector<Mat> &newXMotionMeshes, std::vector<Mat> &newYMotionMeshes)
+void Stabilizer::getFrameWarp()
 {
     std::cout << "xMotionMeshes size: " << xMotionMeshes.size() << std::endl;
     std::cout << "xPaths size: " << xPaths.size() << std::endl;
@@ -90,8 +86,7 @@ void Stabilizer::getFrameWarp(const std::vector<Mat> &xPaths, const std::vector<
     Log("3. New frame warp obtained.");
 }
 
-void Stabilizer::generateStabilizedVideo(VideoCapture &cap, const std::vector<Mat> &xMotionMeshes, const std::vector<Mat> &yMotionMeshes,
-                                         const std::vector<Mat> &newXMotionMeshes, const std::vector<Mat> &newYMotionMeshes)
+void Stabilizer::generateStabilizedVideo(VideoCapture &cap)
 {
     cap.set(cv::CAP_PROP_POS_FRAMES, 0);
     int frameRate = static_cast<int>(cap.get(cv::CAP_PROP_FPS));
@@ -117,7 +112,8 @@ void Stabilizer::generateStabilizedVideo(VideoCapture &cap, const std::vector<Ma
         Mat newFrame;
         MeshFlow::meshWarpFrame(frame, newXMotionMesh, newYMotionMesh, newFrame);
         // new_frame = new_frame[HORIZONTAL_BORDER:-HORIZONTAL_BORDER, VERTICAL_BORDER:-VERTICAL_BORDER, :]
-        // resize image
+
+        /// resize image - apply crop (uncomment)
         newFrame = newFrame(cv::Range(HORIZONTAL_BORDER, frame.rows-HORIZONTAL_BORDER), cv::Range(VERTICAL_BORDER, frame.cols-VERTICAL_BORDER));
         cv::resize(newFrame, newFrame, cv::Size(frame.cols, frame.rows), cv::INTER_CUBIC);
 
