@@ -2,6 +2,8 @@
 
 #include <opencv2/opencv.hpp>
 
+#include "MeshFlow.h"
+
 using cv::Mat;
 
 using std::vector;
@@ -16,6 +18,7 @@ public:
     /// Optimization methods solved by iterative Jacobi-based solver
     static void offlinePathOptimization(const vector<Mat>& cameraPath,
                                         vector<Mat>& p,
+                                        vector<std::pair<double, double>>& lambdas,
                                                int iterations = 100,
                                                int windowSize = 6);
 
