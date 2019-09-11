@@ -17,7 +17,7 @@ typedef std::map<std::pair<int, int>, vector<double>> Map;
 class MeshFlow
 {
 public:
-    static const int PIXELS = 16;
+
     static const int RADIUS = 300;
 
     static void transformPoint(const Mat& H, const Point2d& point, Point2d& result);
@@ -25,7 +25,9 @@ public:
     static void motionPropagate(const vector<Point2d> oldPoints,
                          const vector<Point2d> newPoints,
                          const Mat& oldFrame,
-                         Mat& xMotionMesh, Mat& yMotionMesh);
+                         Mat& xMotionMesh, Mat& yMotionMesh,
+                         vector<std::pair<double, double>>& lambdas,
+                                cv::Size sz);
 
     static void generateVertexProfiles(const Mat& xMotionMesh,
                                 const Mat& yMotionMesh,
@@ -35,7 +37,9 @@ public:
     static void meshWarpFrame(const Mat& frame,
                        const Mat& xMotionMesh,
                        const Mat& yMotionMesh,
-                       Mat& warpedFrame);
+                       Mat& warpedFrame, cv::Size sz);
+
+
 
 };
 
