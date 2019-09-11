@@ -8,7 +8,10 @@ void System::run() {
     cv::VideoCapture cap(filename);
 
     // Propagate motion vectors and generate vertex profiles
-    Stabilizer stab;
+    int width = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_WIDTH));
+    int height = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_HEIGHT));
+    Stabilizer stab(filename, cv::Size(width, height));
+
     stab.readVideo(cap);
 
     // Stabilize the  vertex profiles
