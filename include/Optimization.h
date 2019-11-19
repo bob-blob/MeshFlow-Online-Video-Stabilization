@@ -1,4 +1,5 @@
-#pragma once
+#ifndef OPTIMIZATION_H
+#define OPTIMIZATION_H
 
 #include <opencv2/opencv.hpp>
 
@@ -39,3 +40,5 @@ public:
 };
 
 }
+
+#endif

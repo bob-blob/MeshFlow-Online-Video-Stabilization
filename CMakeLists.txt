@@ -30,7 +30,7 @@ add_library(${PROJECT_NAME} SHARED
     src/OpticalFlow.cpp
     src/MeshFlow.cpp
     src/Optimization.cpp
-    src/Stabilizer.cpp
+    src/Configurations.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}

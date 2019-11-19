@@ -17,8 +17,9 @@ void Optimizer::offlinePathOptimization(const vector<Mat>& cameraPath,
                                         int windowSize) {
 
     Mat lambda_t(lambdas.size(), 1, CV_64F); // fix for adaptive lambda
-    for (int i = 0; i < lambdas.size(); ++i) {
-        lambda_t.at<double>(i) = 100; //  (std::max(std::min(lambdas[i].first, lambdas[i].second), 0.)); // 100
+    for (size_t i = 0; i < lambdas.size(); ++i) {
+        lambda_t.at<double>(i) = 100 * (std::max(std::min(lambdas[i].first, lambdas[i].second), 0.));
+        Log("lambda_" << i << " = " << lambda_t.at<double>(i));
     }
     //double lambda_t = 100;
     p.reserve(cameraPath.size());

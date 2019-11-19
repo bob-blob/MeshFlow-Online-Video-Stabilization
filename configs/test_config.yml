@@ -1,0 +1,47 @@
+%YAML:1.0
+---
+meshflow:
+   grid_size: [ 4, 4 ]
+   motion_propagation_radius: 300
+optical_flow:
+   feature_extraction_method: shi-tomasi
+   FAST_parameters:
+      type: 2
+      nonmax_suppression: 1
+      threshold: 10
+   shi_tomasi_params:
+      max_corners: 500
+      quality_level: 2.9999999999999999e-01
+      min_distance: 7.
+      block_size: 7
+      use_harris: 0
+      k: 4.0000000000000001e-02
+   corner_subpix_state: enabled
+   corner_subpix:
+      window_size: [ 15, 15 ]
+      zero_zone: [ -1, -1 ]
+      term_criteria:
+         type: 3
+         max_count: 20
+         epsilon: 2.9999999999999999e-02
+   klt_params:
+      track_grid_size: [ 4, 4 ]
+      window_size: [ 15, 15 ]
+      max_pyramid_level: 2
+      term_criteria:
+         type: 3
+         max_count: 20
+         epsilon: 2.9999999999999999e-02
+   outlier_rejection_params:
+      type: homography
+      grid_size: [ 4, 4 ]
+      homography_fit:
+         fitting_strategy: ransac
+         rejection_threshold: 2.
+optimization:
+   mode: offline
+   weighting_strategy: constant
+   iterations: 100
+   temporal_window_size: 6
+   frame_buffer_size: 60
+   beta: 1

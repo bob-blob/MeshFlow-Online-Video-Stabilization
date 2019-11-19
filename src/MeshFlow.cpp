@@ -1,106 +1,50 @@
 #include "MeshFlow.h"
 
+#include <opencv2/calib3d/calib3d.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+
 namespace meshflow {
 
-void MeshFlow::transformPoint(const Mat& H, const Point2d& point, Point2d& result) {
+using cv::Vec2d;
+using cv::Mat;
+using cv::Point2d;
+using std::vector;
 
-    double a = H.at<double>(0, 0) * point.x + H.at<double>(0, 1) * point.y + H.at<double>(0, 2);
-    double b = H.at<double>(1, 0) * point.x + H.at<double>(1, 1) * point.y + H.at<double>(1, 2);
-    double c = H.at<double>(2, 0) * point.x + H.at<double>(2, 1) * point.y + H.at<double>(2, 2);
+MeshFlow::MeshFlow(): motionPropagationRadius(500) {} // FIX: this constructor is invalid
 
-    result = Point2d(a/c, b/c);
+MeshFlow::MeshFlow(const config::MeshFlowConfiguration& config)
+    : motionPropagationRadius(config.motionPropagationRadius) {
+
 }
 
-void MeshFlow::motionPropagate(const vector<Point2d> oldPoints,
-                               const vector<Point2d> newPoints,
+void MeshFlow::motionPropagate(const vector<Point2d>& oldPoints,
+                               const vector<Point2d>& newPoints,
                                const Mat& oldFrame,
                                Mat& xMotionMesh, Mat& yMotionMesh,
                                vector<std::pair<double, double>>& lambdas,
-                               cv::Size sz) {
+                               cv::Size gridSize) {
 
-    int cols = static_cast<int>(oldFrame.cols / sz.width + 1);
-    int rows = static_cast<int>(oldFrame.rows / sz.height + 1);
+    int cols = static_cast<int>(oldFrame.cols / gridSize.width + 1); // number of column vertices
+    int rows = static_cast<int>(oldFrame.rows / gridSize.height + 1); // number of row vertices
+    cv::Size meshSize(cols, rows);
 
-    Mat H = cv::findHomography(oldPoints, newPoints, cv::RANSAC);
+    /// Find adaptive lambdas using global homography
+    Mat H = cv::findHomography(oldPoints, newPoints);
+    double lambda1 = translationalElement(H, cv::Size(oldFrame.cols, oldFrame.rows)),
+           lambda2 = affineComponent(H);
+    lambdas.push_back(std::make_pair(lambda1, lambda2));
 
-    /// Find information for offline adaptive lambda
-    /// TODO: FIX THIS
-    double translationalElement = sqrt(pow(H.at<double>(0, 2), 2) + pow(H.at<double>(1, 2), 2));
-    double l1 = -1.93 * translationalElement + 0.95;
-
-    Mat affinePart = H(cv::Range(0, 2), cv::Range(0, 2));
-    Mat eigenvalues;
-    cv::eigen(affinePart, eigenvalues);
-    double affineComponent = eigenvalues.at<double>(0) / eigenvalues.at<double>(1);
-    double l2 = 5.83 * affineComponent + 4.88;
-    lambdas.push_back(std::make_pair(l1, l2));
-
-    Map xMotion, yMotion;
-    for (int i = 0; i < rows; ++i) {
-        for (int j = 0; j < cols; ++j) {
-            Point2d point(sz.width*j, sz.height*i);
-            Point2d pointTransform;
-            transformPoint(H, point, pointTransform);
-
-            xMotion[std::make_pair(i, j)].push_back(point.x - pointTransform.x);
-            yMotion[std::make_pair(i, j)].push_back(point.y - pointTransform.y);
-        }
-    }
-
-    // Distribute feature motion vectors
-    Map temp_xMotion, temp_yMotion;
-    for (int i = 0; i < rows; ++i) {
-        for (int j = 0; j < cols; ++j) {
-            Point2d vertex(sz.width*j, sz.height*i);
-            for (size_t k = 0; k < oldPoints.size(); ++k) {
-                double distance = sqrt(pow(vertex.x - oldPoints[k].x, 2) + pow(vertex.y - oldPoints[k].y, 2));
-                if (distance < RADIUS) {
-                    Point2d pointTransform;
-                    transformPoint(H, oldPoints[k], pointTransform);
-
-                    temp_xMotion[std::make_pair(i, j)].push_back(newPoints[k].x - pointTransform.x);
-                    temp_yMotion[std::make_pair(i, j)].push_back(newPoints[k].y - pointTransform.y);
-                }
-            }
-        }
-    }
+    Map xMotionInitial, yMotionInitial, xMotionFilled, yMotionFilled;
+    initializeMotionMesh(H, meshSize, gridSize, xMotionInitial, yMotionInitial);
+    propogateFeatureMotion(oldPoints, newPoints, H, meshSize, gridSize, xMotionFilled, yMotionFilled);
 
     // Apply first median filter on obtained motion for each vertex
-    Map::iterator it = xMotion.begin();
-    while (it != xMotion.end()) {
+    sparseMedianFilter(xMotionInitial, xMotionFilled, xMotionMesh);
+    sparseMedianFilter(yMotionInitial, yMotionFilled, yMotionMesh);
 
-        Map::iterator itX = temp_xMotion.find(it->first);
-        if (itX != temp_xMotion.end())
-        {
-            std::sort(itX->second.begin(), itX->second.end());
-            xMotionMesh.at<double>(it->first.first, it->first.second) = xMotion[it->first].back() + temp_xMotion[it->first].at(temp_xMotion[it->first].size()/2);
-        } else {
-            xMotionMesh.at<double>(it->first.first, it->first.second) = xMotion[it->first].back();
-        }
-
-        Map::iterator itY = temp_yMotion.find(it->first);
-        if (itY != temp_yMotion.end())
-        {
-            std::sort(itY->second.begin(), itY->second.end());
-            yMotionMesh.at<double>(it->first.first, it->first.second) = yMotion[it->first].back() + temp_yMotion[it->first].at(temp_yMotion[it->first].size()/2);
-        } else {
-            yMotionMesh.at<double>(it->first.first, it->first.second) = yMotion[it->first].back();
-        }
-
-        it++;
-    }
-
-    // TODO: Apply the second medial filter over the motion field to discard the outliers
-    // median kernel [3x3] with Replicate borders
-
-    xMotionMesh.convertTo(xMotionMesh, CV_32F);
-    cv::medianBlur(xMotionMesh, xMotionMesh, 3);
-    xMotionMesh.convertTo(xMotionMesh, CV_64F);
-
-    yMotionMesh.convertTo(yMotionMesh, CV_32F);
-    cv::medianBlur(yMotionMesh, yMotionMesh, 3);
-    yMotionMesh.convertTo(yMotionMesh, CV_64F);
-
+    // Apply the second medial filter over the motion field to discard the outliers. median kernel [3x3] with Replicate borde
+    spatialMedianFilter(xMotionMesh, 3);
+    spatialMedianFilter(yMotionMesh, 3);
 }
 
 void MeshFlow::generateVertexProfiles(const Mat& xMotionMesh,
@@ -110,10 +54,7 @@ void MeshFlow::generateVertexProfiles(const Mat& xMotionMesh,
     yPaths.push_back(yMotionMesh + yPaths.back());
 }
 
-void MeshFlow::meshWarpFrame(const Mat& frame,
-                             const Mat& xMotionMesh,
-                             const Mat& yMotionMesh,
-                             Mat& warpedFrame, cv::Size sz) {
+void MeshFlow::meshWarpFrame(const Mat& frame, const Mat& xMotionMesh, const Mat& yMotionMesh, Mat& warpedFrame, cv::Size meshCellSize) {
 
     Mat mapX = Mat::zeros(frame.rows, frame.cols, CV_32F);
     Mat mapY = Mat::zeros(frame.rows, frame.cols, CV_32F);
@@ -121,45 +62,124 @@ void MeshFlow::meshWarpFrame(const Mat& frame,
     for (int i = 0; i < xMotionMesh.rows-1; ++i) {
         for (int j = 0; j < xMotionMesh.cols-1; ++j) {
 
-            vector<Point2d> src = { Point2d(j*sz.width, i*sz.height),
-                                    Point2d(j*sz.width, (i+1)*sz.height),
-                                    Point2d((j+1)*sz.width, i*sz.height),
-                                    Point2d((j+1)*sz.width, (i+1)*sz.height)};
+            vector<Point2d> src = { Point2d(j*meshCellSize.width, i*meshCellSize.height),
+                                    Point2d(j*meshCellSize.width, (i+1)*meshCellSize.height),
+                                    Point2d((j+1)*meshCellSize.width, i*meshCellSize.height),
+                                    Point2d((j+1)*meshCellSize.width, (i+1)*meshCellSize.height)};
 
-            vector<Point2d> dst = { Point2d(j* sz.width+xMotionMesh.at<double>(i, j),
-                                    i*sz.height+yMotionMesh.at<double>(i, j)),
-                                    Point2d(j*sz.width+xMotionMesh.at<double>(i+1, j),
-                                    (i+1)*sz.height+yMotionMesh.at<double>(i+1, j)),
-                                    Point2d((j+1)*sz.width+xMotionMesh.at<double>(i, j+1),
-                                    i*sz.height+yMotionMesh.at<double>(i, j+1)),
-                                    Point2d((j+1)*sz.width+ xMotionMesh.at<double>(i+1, j+1),
-                                    (i+1)*sz.height+yMotionMesh.at<double>(i+1, j+1)) };
+            vector<Point2d> dst = { Point2d(j*meshCellSize.width+xMotionMesh.at<double>(i, j),
+                                    i*meshCellSize.height+yMotionMesh.at<double>(i, j)),
+                                    Point2d(j*meshCellSize.width+xMotionMesh.at<double>(i+1, j),
+                                    (i+1)*meshCellSize.height+yMotionMesh.at<double>(i+1, j)),
+                                    Point2d((j+1)*meshCellSize.width+xMotionMesh.at<double>(i, j+1),
+                                    i*meshCellSize.height+yMotionMesh.at<double>(i, j+1)),
+                                    Point2d((j+1)*meshCellSize.width+ xMotionMesh.at<double>(i+1, j+1),
+                                    (i+1)*meshCellSize.height+yMotionMesh.at<double>(i+1, j+1)) };
 
-            Mat H = cv::findHomography(src, dst, cv::RANSAC);
+            Mat H = cv::findHomography(src, dst, 0);
 
-            for (int k = sz.height*i; k < sz.height*(i+1); ++k) {
-                for (int l = sz.width*j; l < sz.width*(j+1); ++l) {
-                    double x = H.at<double>(0, 0)*l + H.at<double>(0, 1)*k + H.at<double>(0, 2);
-                    double y = H.at<double>(1, 0)*l + H.at<double>(1, 1)*k + H.at<double>(1, 2);
-                    double w = H.at<double>(2, 0)*l + H.at<double>(2, 1)*k + H.at<double>(2, 2);
+            // Transform indexes for image cell and build the map for remap
+            for (int yCellIndex = meshCellSize.height*i; yCellIndex < meshCellSize.height*(i+1); ++yCellIndex) {
+                for (int xCellIndex = meshCellSize.width*j; xCellIndex < meshCellSize.width*(j+1); ++xCellIndex) {
+                    double X = H.at<double>(0, 0) * xCellIndex + H.at<double>(0, 1) * yCellIndex + H.at<double>(0, 2);
+                    double Y = H.at<double>(1, 0) * xCellIndex + H.at<double>(1, 1) * yCellIndex + H.at<double>(1, 2);
+                    double W = H.at<double>(2, 0) * xCellIndex + H.at<double>(2, 1) * yCellIndex + H.at<double>(2, 2);
 
-                    if (w != 0) { // ._. this produces correct results
-                        x = x/w;
-                        y = y/w;
-                    } else {
-                        x = l;
-                        y = k;
-                    }
-
-                    mapX.at<float>(k, l) = static_cast<float>(x);
-                    mapY.at<float>(k, l) = static_cast<float>(y);
+                    W = W ? 1.0 / W : 0;
+                    mapX.at<float>(yCellIndex, xCellIndex) = X * W;
+                    mapY.at<float>(yCellIndex, xCellIndex) = Y * W;
                 }
             }
         }
     }
-
     cv::remap(frame, warpedFrame, mapX, mapY, cv::INTER_LINEAR, cv::BORDER_CONSTANT);
+}
 
+void MeshFlow::initializeMotionMesh(const Mat& homography, cv::Size meshSize, cv::Size gridCellSize, Map& xMotion, Map& yMotion) {
+    // Prewarp. Ensures that each mesh vertex atleast contains global motion
+    for (int i = 0; i < meshSize.height; ++i) {
+        for (int j = 0; j < meshSize.width; ++j) {
+            Point2d point(gridCellSize.width*j, gridCellSize.height*i);
+            Point2d pointTransform = transformPoint(homography, point);
+
+            xMotion[std::make_pair(i, j)].push_back(point.x - pointTransform.x);
+            yMotion[std::make_pair(i, j)].push_back(point.y - pointTransform.y);
+        }
+    }
+}
+
+void MeshFlow::propogateFeatureMotion(const vector<Point2d>& oldFeatures, const vector<Point2d>& newFeatures, const Mat& homography, cv::Size meshSize, cv::Size gridCellSize, Map xMotion, Map& yMotion) {
+    for (int i = 0; i < meshSize.height; ++i) {
+        for (int j = 0; j < meshSize.width; ++j) {
+            Point2d vertex(gridCellSize.width*j, gridCellSize.height*i);
+
+            for (size_t k = 0; k < oldFeatures.size(); ++k) {
+                double distance = sqrt(pow(vertex.x - oldFeatures[k].x, 2) + pow(vertex.y - oldFeatures[k].y, 2));
+                //double inEllipse = pow(vertex.x - oldFeatures[k].x, 2)/pow(RADIUS_X, 2) + pow(vertex.y - oldFeatures[k].y, 2)/pow(RADIUS_Y, 2);
+
+                if(distance < motionPropagationRadius) { // Check if feature lies in in the radius of a circle then propagate motion to vertex
+                //if (inEllipse <= 1) {
+                    Point2d pointTransform = transformPoint(homography, oldFeatures[k]);
+
+                    xMotion[std::make_pair(i, j)].push_back(newFeatures[k].x - pointTransform.x);
+                    yMotion[std::make_pair(i, j)].push_back(newFeatures[k].y - pointTransform.y);
+                }
+            }
+        }
+    }
+}
+
+void MeshFlow::sparseMedianFilter(Map& initialMotionField, Map& propagatedMotionField, Mat& filteredMotionField) {
+    Map::iterator it = initialMotionField.begin();
+    while (it != initialMotionField.end()) {
+
+        std::pair<int, int> vertexIndex = it->first;
+        Map::iterator itVertexVector = propagatedMotionField.find(vertexIndex);
+
+        if (itVertexVector != propagatedMotionField.end())
+        {
+            std::sort(itVertexVector->second.begin(), itVertexVector->second.end());
+            filteredMotionField.at<double>(vertexIndex.first, vertexIndex.second) = initialMotionField[vertexIndex].back() + propagatedMotionField[vertexIndex].at(propagatedMotionField[vertexIndex].size()/2);
+        } else {
+            filteredMotionField.at<double>(vertexIndex.first, vertexIndex.second) = initialMotionField[vertexIndex].back();
+        }
+
+        it++;
+    }
+}
+
+void MeshFlow::spatialMedianFilter(Mat& motionField, int kernelSize) {
+    // Second median filter
+    motionField.convertTo(motionField, CV_32F);
+    cv::medianBlur(motionField, motionField, kernelSize);
+    motionField.convertTo(motionField, CV_64F);
+}
+
+double MeshFlow::translationalElement(const Mat& homography, cv::Size frameResolution) {
+    double intermResult = sqrt(
+                pow(homography.at<double>(0, 2) / frameResolution.width, 2) +
+                pow(homography.at<double>(1, 2) / frameResolution.height, 2));
+
+    return -1.93 * intermResult + 0.95;     // Refer to the paper to find out about these empirically extracted coefficient
+}
+
+double MeshFlow::affineComponent(const Mat& homography) {
+    Mat affinePart = homography(cv::Range(0, 2), cv::Range(0, 2)),
+        eigenvalues;
+    cv::eigen(affinePart, eigenvalues);
+
+    double intermResult = eigenvalues.at<double>(0) / eigenvalues.at<double>(1);
+
+    return 5.83 * intermResult - 4.83;      // In paper it is (+ 4.83)
+}
+
+Point2d MeshFlow::transformPoint(const Mat& H, const Point2d& point) {
+
+    double a = H.at<double>(0, 0) * point.x + H.at<double>(0, 1) * point.y + H.at<double>(0, 2);
+    double b = H.at<double>(1, 0) * point.x + H.at<double>(1, 1) * point.y + H.at<double>(1, 2);
+    double c = H.at<double>(2, 0) * point.x + H.at<double>(2, 1) * point.y + H.at<double>(2, 2);
+
+    return Point2d(a/c, b/c);
 }
 
 }
