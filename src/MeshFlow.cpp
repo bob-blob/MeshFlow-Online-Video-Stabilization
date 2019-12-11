@@ -10,7 +10,42 @@ using cv::Mat;
 using cv::Point2d;
 using std::vector;
 
-MeshFlow::MeshFlow(): motionPropagationRadius(500) {} // FIX: this constructor is invalid
+Mesh::Mesh(cv::Size shape)
+    : colNum{shape.width},
+      rowNum{shape.height}
+{}
+
+std::vector<double> Mesh::getPropagationVector(int row, int col) {
+    return vector<double>(meshMotionData[this->rows() * row + col].begin() + 1,
+                          meshMotionData[this->rows() * row + col].end());
+}
+
+double Mesh::getInitialMotion(int row, int col) const {
+    return meshMotionData[this->rows() * row + col][0];
+}
+
+void Mesh::setInitialMotion(int row, int col, double motion) {
+    meshMotionData[this->rows() * row + col][0] = motion;
+}
+
+void Mesh::sortPropagationVectors() {
+    for (int i = 0; i < this->rows(); ++i) {
+        for (int j = 0; j < this->cols(); ++j) {
+            std::sort(meshMotionData[this->rows() * i + j].begin()+1,
+                      meshMotionData[this->rows() * i + j].end());
+        }
+    }
+}
+
+int Mesh::cols() const {
+    return colNum;
+}
+
+int Mesh::rows() const {
+    return rowNum;
+}
+
+MeshFlow::MeshFlow() {}
 
 MeshFlow::MeshFlow(const config::MeshFlowConfiguration& config)
     : motionPropagationRadius(config.motionPropagationRadius) {
@@ -108,7 +143,7 @@ void MeshFlow::initializeMotionMesh(const Mat& homography, cv::Size meshSize, cv
     }
 }
 
-void MeshFlow::propogateFeatureMotion(const vector<Point2d>& oldFeatures, const vector<Point2d>& newFeatures, const Mat& homography, cv::Size meshSize, cv::Size gridCellSize, Map xMotion, Map& yMotion) {
+void MeshFlow::propogateFeatureMotion(const vector<Point2d>& oldFeatures, const vector<Point2d>& newFeatures, const Mat& homography, cv::Size meshSize, cv::Size gridCellSize, Map& xMotion, Map& yMotion) {
     for (int i = 0; i < meshSize.height; ++i) {
         for (int j = 0; j < meshSize.width; ++j) {
             Point2d vertex(gridCellSize.width*j, gridCellSize.height*i);

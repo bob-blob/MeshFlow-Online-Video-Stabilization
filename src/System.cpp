@@ -41,7 +41,7 @@ void System::stabilize()
 
     int currFrameIdx{1};
 
-    lambdas.push_back(std::make_pair(100, 100));
+    lambdas.push_back(std::make_pair(1, 1));
 
     MeshFlow meshFlow(mainConfig.meshFlowConfig);
 
@@ -74,7 +74,7 @@ void System::stabilize()
 
         meshFlow.generateVertexProfiles(xMotionMesh, yMotionMesh, xPaths, yPaths);
 
-        //imshow("disp", oldFrame);
+        //imshow("disp", prevFrame);
         //char c = static_cast<char>(cv::waitKey(33));
         //if (c == 27) {
         //   break;
@@ -141,7 +141,6 @@ void System::generateStabilizedVideo(VideoCapture &cap)
     int frameHeight = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_HEIGHT));
     int frameCount = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_COUNT));
 
-
     // get video parameters
     cv::VideoWriter out = cv::VideoWriter(videoFilename+"_stable.avi", CV_FOURCC('M', 'J', 'P', 'G'), frameRate, cv::Size(frameWidth*2, frameHeight));
 
@@ -202,7 +201,6 @@ void System::generateStabilizedVideo(VideoCapture &cap)
     Log("4. Finished writing warped video.");
     cap.release();
     out.release();
-
 }
 
 

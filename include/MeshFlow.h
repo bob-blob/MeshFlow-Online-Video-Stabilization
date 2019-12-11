@@ -11,8 +11,25 @@
 namespace meshflow {
 
 typedef std::map<std::pair<int, int>, std::vector<double>> Map;
-static int RADIUS_X;
-static int RADIUS_Y;
+
+class Mesh {
+    // Leave it be for a while
+public:
+    Mesh(cv::Size shape);
+
+    double getInitialMotion(int row, int col) const;
+    void setInitialMotion(int row, int col, double motion);
+
+    std::vector<double> getPropagationVector(int row, int col);
+
+    void sortPropagationVectors();
+
+    int cols() const;
+    int rows() const;
+private:
+    int colNum, rowNum;
+    std::vector<std::vector<double>> meshMotionData;
+};
 
 class MeshFlow
 {
@@ -33,9 +50,9 @@ private:
             const cv::Mat& homography, cv::Size meshSize, cv::Size gridCellSize, Map& xMotion, Map& yMotion);
     void propogateFeatureMotion(
             const std::vector<cv::Point2d>& oldFeatures, const std::vector<cv::Point2d>& newFeatures, const cv::Mat& homography,
-            cv::Size meshSize, cv::Size gridCellSize, Map xMotion, Map& yMotion);
+            cv::Size meshSize, cv::Size gridCellSize, Map& xMotion, Map& yMotion);
 
-    void sparseMedianFilter(Map& initialMotionField, Map& propagatedMotionField, cv::Mat& filteredMotionField) ;
+    void sparseMedianFilter(Map& initialMotionField, Map& propagatedMotionField, cv::Mat& filteredMotionField);
     void spatialMedianFilter(cv::Mat& motionField, int kernelSize);
     double translationalElement(const cv::Mat& homography, cv::Size frameResolution);
     double affineComponent(const cv::Mat& homography);

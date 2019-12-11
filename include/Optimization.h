@@ -20,8 +20,8 @@ public:
     static void offlinePathOptimization(const vector<Mat>& cameraPath,
                                         vector<Mat>& p,
                                         vector<std::pair<double, double>>& lambdas,
-                                               int iterations = 100,
-                                               int windowSize = 6);
+                                        int iterations = 100,
+                                        int windowSize = 6);
 
     static void onlinePathOptimization(const vector<Mat>& cameraPath,
                                               vector<Mat>& optimizedPath,
@@ -29,6 +29,9 @@ public:
                                               int iterations = 10,
                                               int windowSize = 32,
                                               int beta = 1);
+
+    static void offlinePathOptimizationLemon(const vector<Mat>& cameraPath,
+                                             vector<Mat>& optimizedPath);
     // Implement parallel optimization
 
     static Mat getCamPath(const vector<Mat>& camPath, int i, int j);

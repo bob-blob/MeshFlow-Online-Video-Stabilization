@@ -76,7 +76,6 @@ void trackKLT(const Mat& sourceGray,
     } else if (optFlowConfig.outlierParams.state == OutlierRejectionState::SIMPLE) {
         rejectBadCorners(currFeatureSet, status, filteredFeatureSet);
     }
-
     sourceFeatures = vector<Point2d>{filteredFeatureSet.first.begin(), filteredFeatureSet.first.end()};
     targetFeatures = vector<Point2d>{filteredFeatureSet.second.begin(), filteredFeatureSet.second.end()};
 }
@@ -177,8 +176,7 @@ void outlierRejection(const Mat& frame,
             cv::Rect region{ x, y, static_cast<int>(cellWidth), static_cast<int>(cellHeight)};
 
             FramePairCorners binPoints;
-            for (size_t i = 0; i < intermediateResultCorners.first.size(); ++i)
-            {
+            for (size_t i = 0; i < intermediateResultCorners.first.size(); ++i) {
                 if(region.contains(intermediateResultCorners.first[i]) &&
                    region.contains(intermediateResultCorners.second[i])) {
                     binPoints.first.push_back(intermediateResultCorners.first[i]);
@@ -186,14 +184,9 @@ void outlierRejection(const Mat& frame,
                 }
             }
 
-            if(binPoints.first.size() <= 3 || binPoints.second.size() <=3)
-            {
-                filteredCorners.first.insert(filteredCorners.first.end(),
-                                             binPoints.first.begin(),
-                                             binPoints.first.end());
-                filteredCorners.second.insert(filteredCorners.second.end(),
-                                              binPoints.second.begin(),
-                                              binPoints.second.end());
+            if(binPoints.first.size() <= 3 || binPoints.second.size() <=3) {
+                filteredCorners.first.insert(filteredCorners.first.end(), binPoints.first.begin(), binPoints.first.end());
+                filteredCorners.second.insert(filteredCorners.second.end(), binPoints.second.begin(), binPoints.second.end());
                 continue;
             }
 

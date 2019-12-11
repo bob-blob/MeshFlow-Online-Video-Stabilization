@@ -1,5 +1,9 @@
 #include "Optimization.h"
 
+#include <lemon/lp.h>
+#include <lemon/lp_base.h>
+#include <lemon/clp.h>
+
 namespace meshflow {
 
 double Optimizer::gauss(int t, int r, int windowSize) {
@@ -7,6 +11,49 @@ double Optimizer::gauss(int t, int r, int windowSize) {
         return 0;
 
     return exp((-9 * pow((r - t), 2)) / pow(windowSize, 2));
+}
+
+void Optimizer::offlinePathOptimizationLemon(const vector<Mat> &cameraPath, vector<Mat> &optimizedPath) {
+    using namespace lemon;
+    size_t t = cameraPath.size();
+    int cols = cameraPath.back().cols,
+        rows = cameraPath.back().rows;
+
+    std::vector<std::vector<double>> camPath(t);
+    for (size_t timestamp = 0; timestamp < t; ++timestamp) {
+        std::vector<double> mesh(cols * rows);
+        for (int m = 0; m < rows; ++m) {
+            for (int n = 0; n < cols; ++n) {
+                mesh[m * cols + n] = cameraPath[timestamp].at<double>(m, n);
+            }
+        }
+        camPath.push_back(mesh);
+    }
+
+    ClpLp lp;
+    // Add variables
+    std::vector<std::vector<Lp::Col>> p(t);
+    for (size_t timestamp = 0; timestamp < t; ++timestamp) {
+        for (int m = 0; m < rows; ++m) {
+            for (int n = 0; n < cols; ++n) {
+                p[timestamp].push_back(lp.addCol());
+            }
+        }
+    }
+
+    Lp::Expr objective;
+
+    for (size_t timestamp = 0; timestamp < t; ++timestamp) {
+        // First constraint
+        Lp::Expr firstConstraint;
+        for (int m = 0; m < rows; ++m) {
+            for (int n = 0; n < cols; ++n) {
+                int currIndex = m * cols + n;
+
+            }
+        }
+    }
+
 }
 
 /// Optimization methods solved by iterative Jacobi-based solver
@@ -18,7 +65,7 @@ void Optimizer::offlinePathOptimization(const vector<Mat>& cameraPath,
 
     Mat lambda_t(lambdas.size(), 1, CV_64F); // fix for adaptive lambda
     for (size_t i = 0; i < lambdas.size(); ++i) {
-        lambda_t.at<double>(i) = 100 * (std::max(std::min(lambdas[i].first, lambdas[i].second), 0.));
+        lambda_t.at<double>(i) = (std::max(std::min(lambdas[i].first, lambdas[i].second), 0.));
         Log("lambda_" << i << " = " << lambda_t.at<double>(i));
     }
     //double lambda_t = 100;

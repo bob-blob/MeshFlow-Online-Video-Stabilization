@@ -18,9 +18,25 @@ if (NOT OpenCV_FOUND)
     message(FATAL_ERROR "OpenCV not found.")
 endif()
 
+find_package(Lemon REQUIRED)
+if(NOT LEMON_FOUND)
+        MESSAGE(FATAL_ERROR "Lemon not found.")
+endif()
+
+find_package(Clp REQUIRED)
+if(NOT Clp_FOUND)
+        MESSAGE(FATAL_ERROR "Clp not found.")
+endif()
+
+message("Lemon incl: ${LEMON_INCLUDE_DIR}")
+message("Lemon libs: ${LEMON_LIBRARIES}")
+message("Clp incl: ${Clp_INCLUDE_DIRS}")
+message("Clp libs: ${Clp_LIBRARIES}")
+
 include_directories(
     ${PROJECT_SOURCE_DIR}
     ${PROJECT_SOURCE_DIR}/include
+    #${LEMON_INCLUDE_DIR}
 )
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
@@ -31,10 +47,13 @@ add_library(${PROJECT_NAME} SHARED
     src/MeshFlow.cpp
     src/Optimization.cpp
     src/Configurations.cpp
+    src/evaluation.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}
     ${OpenCV_LIBS}
+    ${Clp_LIBRARIES}
+    ${LEMON_LIBRARIES}
 )
 
 # Build example binaries
